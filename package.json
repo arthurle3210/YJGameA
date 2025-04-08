@@ -1,5 +1,6 @@
 {
   "name": "yjgamea",
+  "homepage": "https://arthurle3210.github.io/YJGameA/",
   "version": "1.0.0",
   "description": "",
   "keywords": [],
@@ -17,6 +18,8 @@
     "typescript": "5.7.2"
   },
   "scripts": {
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test --env=jsdom",
