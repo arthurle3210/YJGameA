@@ -1,10 +1,10 @@
 {
   "files": {
-    "main.css": "/static/css/main.3ed22bfb.css",
-    "main.js": "/static/js/main.fb3390d7.js",
-    "index.html": "/index.html",
-    "main.3ed22bfb.css.map": "/static/css/main.3ed22bfb.css.map",
-    "main.fb3390d7.js.map": "/static/js/main.fb3390d7.js.map"
+    "main.css": "/YJGameA/static/css/main.3ed22bfb.css",
+    "main.js": "/YJGameA/static/js/main.fb3390d7.js",
+    "index.html": "/YJGameA/index.html",
+    "main.3ed22bfb.css.map": "/YJGameA/static/css/main.3ed22bfb.css.map",
+    "main.fb3390d7.js.map": "/YJGameA/static/js/main.fb3390d7.js.map"
   },
   "entrypoints": [
     "static/css/main.3ed22bfb.css",
