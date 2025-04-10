@@ -43,7 +43,7 @@ function SlotMachine() {
               defaultItems.map(item =>
                 supabase.from('tasks').insert([{
                   name: item,
-                  user: '00000000-0000-0000-0000-000000000000' // 提供一個默認的UUID值
+                  //user: '00000000-0000-0000-0000-000000000000' // 提供一個默認的UUID值
                 }])
               )
             );
@@ -229,7 +229,7 @@ function SlotMachine() {
                       .from('tasks')
                       .insert([{
                         name: newItem,
-                        user: '00000000-0000-0000-0000-000000000000' // 提供一個默認的UUID值
+                        //user: '00000000-0000-0000-0000-000000000000' // 提供一個默認的UUID值
                       }]);
                     
                     if (error) {
