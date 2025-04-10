@@ -1,12 +1,14 @@
 // App.jsx
 import React, { useState, useEffect, useRef } from "react";
 import "./SlotMachine.css";
+import { supabase } from "./supabaseClient";
 
 function SlotMachine() {
-  // 從 localStorage 讀取項目
-  const storedItems = localStorage.getItem('slotMachineItems');
-  const initialItems = storedItems ? JSON.parse(storedItems) : ["陳年紅茶半糖去冰","瑞順紅茶","胭脂紅茶","近美紅茶","春芽綠茶","雪花冷露","陳年寒露","春芽冷露"];
-  const [items, setItems] = useState(initialItems);
+  // 初始化項目列表
+  const defaultItems = ["陳年紅茶半糖去冰","瑞順紅茶","胭脂紅茶","近美紅茶","春芽綠茶","雪花冷露","陳年寒露","春芽冷露"];
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState("");
@@ -14,10 +16,53 @@ function SlotMachine() {
   const [showItemManager, setShowItemManager] = useState(false);
   const slotItemsRef = useRef(null);
 
-  // 使用 useEffect 監聽項目變更，並儲存到 localStorage
+  // 從Supabase獲取項目
   useEffect(() => {
-    localStorage.setItem('slotMachineItems', JSON.stringify(items));
-  }, [items]);
+    async function fetchItems() {
+      try {
+        setLoading(true);
+        
+        // 從Supabase獲取項目
+        const { data, error } = await supabase
+          .from('tasks')
+          .select('*')
+          .order('created_at', { ascending: true });
+        
+        if (error) {
+          throw error;
+        }
+        
+        // 如果有數據，使用數據；否則使用默認項目並初始化數據庫
+        if (data && data.length > 0) {
+          setItems(data.map(item => item.name));
+        } else {
+          // 如果沒有數據，將默認項目添加到數據庫
+          try {
+            // 使用Promise.all正確地等待所有插入操作完成
+            await Promise.all(
+              defaultItems.map(item =>
+                supabase.from('tasks').insert([{ name: item }])
+              )
+            );
+            
+            setItems(defaultItems);
+          } catch (insertError) {
+            console.error('Error initializing items:', insertError);
+            setItems(defaultItems); // 即使出錯也使用默認項目
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching items:', error);
+        setError(error.message);
+        // 如果出錯，使用默認項目
+        setItems(defaultItems);
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    fetchItems();
+  }, []);
 
   // 拉霸機轉動
   const spin = () => {
@@ -60,10 +105,41 @@ function SlotMachine() {
     setShowItemManager(true);
   };
 
-  const deleteItem = (index) => {
-    const newItems = [...items];
-    newItems.splice(index, 1);
-    setItems(newItems);
+  // 刪除項目
+  const deleteItem = async (index) => {
+    try {
+      const itemToDelete = items[index];
+      
+      // 從Supabase刪除項目
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('id')
+        .eq('name', itemToDelete)
+        .limit(1);
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (data && data.length > 0) {
+        const { error: deleteError } = await supabase
+          .from('tasks')
+          .delete()
+          .eq('id', data[0].id);
+        
+        if (deleteError) {
+          throw deleteError;
+        }
+      }
+      
+      // 更新本地狀態
+      const newItems = [...items];
+      newItems.splice(index, 1);
+      setItems(newItems);
+    } catch (error) {
+      console.error('Error deleting item:', error);
+      alert('刪除項目時出錯: ' + error.message);
+    }
   };
 
   const renderSlotItems = () => {
@@ -84,6 +160,11 @@ function SlotMachine() {
   return (
     <div className="slot-machine">
       <h1>拉霸機遊戲</h1>
+      {loading ? (
+        <p>載入中...</p>
+      ) : error ? (
+        <p>錯誤: {error}</p>
+      ) : null}
       <div className="slot-window">
         <div className="slot-items" ref={slotItemsRef}>
           {renderSlotItems()}
@@ -137,10 +218,25 @@ function SlotMachine() {
                 value={newItem}
                 onChange={(e) => setNewItem(e.target.value)}
               />
-              <button onClick={() => {
+              <button onClick={async () => {
                 if (newItem.trim() !== "") {
-                  setItems([...items, newItem]);
-                  setNewItem("");
+                  try {
+                    // 將新項目添加到Supabase
+                    const { error } = await supabase
+                      .from('tasks')
+                      .insert([{ name: newItem }]);
+                    
+                    if (error) {
+                      throw error;
+                    }
+                    
+                    // 更新本地狀態
+                    setItems([...items, newItem]);
+                    setNewItem("");
+                  } catch (error) {
+                    console.error('Error adding item:', error);
+                    alert('新增項目時出錯: ' + error.message);
+                  }
                 }
               }}>新增</button>
             </div>
