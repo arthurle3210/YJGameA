@@ -41,7 +41,10 @@ function SlotMachine() {
             // 使用Promise.all正確地等待所有插入操作完成
             await Promise.all(
               defaultItems.map(item =>
-                supabase.from('tasks').insert([{ name: item }])
+                supabase.from('tasks').insert([{
+                  name: item,
+                  user: '00000000-0000-0000-0000-000000000000' // 提供一個默認的UUID值
+                }])
               )
             );
             
@@ -158,8 +161,8 @@ function SlotMachine() {
   };
 
   return (
-    <div className="slot-machine">
-      <h1>拉霸機遊戲</h1>
+    <div className="slot-machine" style={{ position: 'relative' }}>
+      <h1>瑩真の解憂店</h1>
       {loading ? (
         <p>載入中...</p>
       ) : error ? (
@@ -224,7 +227,10 @@ function SlotMachine() {
                     // 將新項目添加到Supabase
                     const { error } = await supabase
                       .from('tasks')
-                      .insert([{ name: newItem }]);
+                      .insert([{
+                        name: newItem,
+                        user: '00000000-0000-0000-0000-000000000000' // 提供一個默認的UUID值
+                      }]);
                     
                     if (error) {
                       throw error;
@@ -243,6 +249,18 @@ function SlotMachine() {
           </div>
         </div>
       )}
+      <div style={{
+        position: 'absolute',
+        bottom: '10px',
+        right: '20px',
+        color: '#888',
+        fontSize: '10px',
+        fontFamily: '"Microsoft YaHei", Arial, sans-serif',
+        opacity: '0.7',
+        letterSpacing: '1px'
+      }}>
+        by 大仙
+      </div>
     </div>
   );
 }
