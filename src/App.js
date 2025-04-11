@@ -17,6 +17,81 @@ const getCategoryColor = (category) => {
 };
 
 function SlotMachine() {
+  const [leverPosition, setLeverPosition] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const triggerThreshold = 0.3; // 降低固定觸發閾值為0.3，使更容易觸發
+  const leverRef = useRef(null);
+
+  const handleLeverMouseDown = () => {
+    setIsDragging(true);
+    // 固定觸發位置為0.7
+  };
+
+  const handleLeverMouseUp = () => {
+    // 移除此函數的邏輯，統一由window的mouseup事件處理
+    // 避免重複處理和衝突
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isDragging || !leverRef.current) return;
+      
+      const trackRect = leverRef.current.getBoundingClientRect();
+      
+      // 大幅簡化計算，使拖曳更容易
+      // 計算滑鼠相對於軌道頂部的位置比例
+      const relativeY = Math.max(0, e.clientY - trackRect.top);
+      
+      // 將相對位置轉換為0-1之間的值，並反轉方向（向下拉時值增加）
+      // 使用更寬鬆的計算方式，讓拉桿更容易移動
+      let newPosition = 0;
+      
+      if (relativeY <= trackRect.height * 0.2) {
+        // 頂部20%區域 - 保持在頂部
+        newPosition = 0;
+      } else if (relativeY >= trackRect.height * 0.8) {
+        // 底部20%區域 - 拉到最大值
+        newPosition = 1;
+      } else {
+        // 中間區域 - 線性映射到0-1
+        newPosition = (relativeY - trackRect.height * 0.2) / (trackRect.height * 0.6);
+      }
+      
+      // 添加console.log幫助調試
+      console.log('滑鼠Y位置:', relativeY, '軌道高度:', trackRect.height, '拉桿位置:', newPosition, '閾值:', triggerThreshold);
+      
+      setLeverPosition(newPosition);
+    };
+
+    const handleMouseUp = () => {
+      if (!isDragging) return;
+      
+      console.log('滑鼠放開時位置:', leverPosition, '是否觸發:', leverPosition > triggerThreshold);
+      
+      setIsDragging(false);
+      
+      // 只要拉桿位置超過閾值，就觸發拉霸
+      if (leverPosition > triggerThreshold) {
+        console.log('觸發拉霸!');
+        spin();
+      } else {
+        console.log('未達到觸發閾值');
+      }
+      
+      // 重置拉桿位置
+      setLeverPosition(0);
+    };
+
+    // 無論是否拖曳中，都添加事件監聽器
+    // 這樣可以確保即使滑鼠移動很快，也能捕捉到事件
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, leverPosition, triggerThreshold]);
   // 初始化項目列表和分類
   const categories = ['A', 'B', 'C', 'D', 'E', 'F'];
   const defaultItems = [
@@ -244,9 +319,16 @@ function SlotMachine() {
           {renderSlotItems()}
         </div>
       </div>
-      <button onClick={spin} disabled={spinning} className="spin-button">
-        拉霸!
-      </button>
+      <div className="lever-container">
+        <div className="lever-track" ref={leverRef}>
+          <div
+            className="lever-handle"
+            onMouseDown={handleLeverMouseDown}
+            style={{ transform: `translate(-50%, ${leverPosition * 100}%)` }}
+          />
+        </div>
+        <div className="lever-base" />
+      </div>
       <div className="result">{result}</div>
       <button onClick={addItem}>管理項目</button>
 
