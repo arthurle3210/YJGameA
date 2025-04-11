@@ -22,9 +22,14 @@ function SlotMachine() {
   const triggerThreshold = 0.3; // 降低固定觸發閾值為0.3，使更容易觸發
   const leverRef = useRef(null);
 
+  // 統一處理滑鼠和觸控的按下事件
   const handleLeverMouseDown = () => {
     setIsDragging(true);
-    // 固定觸發位置為0.7
+  };
+  
+  const handleLeverTouchStart = (e) => {
+    e.preventDefault(); // 防止點擊事件被觸發
+    setIsDragging(true);
   };
 
   const handleLeverMouseUp = () => {
@@ -33,17 +38,16 @@ function SlotMachine() {
   };
 
   useEffect(() => {
-    const handleMouseMove = (e) => {
-      if (!isDragging || !leverRef.current) return;
+    // 通用的位置計算函數，同時用於滑鼠和觸控事件
+    const calculatePosition = (clientY) => {
+      if (!leverRef.current) return 0;
       
       const trackRect = leverRef.current.getBoundingClientRect();
       
-      // 大幅簡化計算，使拖曳更容易
-      // 計算滑鼠相對於軌道頂部的位置比例
-      const relativeY = Math.max(0, e.clientY - trackRect.top);
+      // 計算相對於軌道頂部的位置比例
+      const relativeY = Math.max(0, clientY - trackRect.top);
       
-      // 將相對位置轉換為0-1之間的值，並反轉方向（向下拉時值增加）
-      // 使用更寬鬆的計算方式，讓拉桿更容易移動
+      // 將相對位置轉換為0-1之間的值
       let newPosition = 0;
       
       if (relativeY <= trackRect.height * 0.2) {
@@ -57,16 +61,16 @@ function SlotMachine() {
         newPosition = (relativeY - trackRect.height * 0.2) / (trackRect.height * 0.6);
       }
       
-      // 添加console.log幫助調試
-      console.log('滑鼠Y位置:', relativeY, '軌道高度:', trackRect.height, '拉桿位置:', newPosition, '閾值:', triggerThreshold);
+      console.log('Y位置:', relativeY, '軌道高度:', trackRect.height, '拉桿位置:', newPosition, '閾值:', triggerThreshold);
       
-      setLeverPosition(newPosition);
+      return newPosition;
     };
-
-    const handleMouseUp = () => {
+    
+    // 處理拖曳結束的通用函數
+    const handleDragEnd = () => {
       if (!isDragging) return;
       
-      console.log('滑鼠放開時位置:', leverPosition, '是否觸發:', leverPosition > triggerThreshold);
+      console.log('拖曳結束時位置:', leverPosition, '是否觸發:', leverPosition > triggerThreshold);
       
       setIsDragging(false);
       
@@ -82,16 +86,43 @@ function SlotMachine() {
       setLeverPosition(0);
     };
 
-    // 無論是否拖曳中，都添加事件監聽器
-    // 這樣可以確保即使滑鼠移動很快，也能捕捉到事件
+    // 滑鼠事件處理
+    const handleMouseMove = (e) => {
+      if (!isDragging) return;
+      const newPosition = calculatePosition(e.clientY);
+      setLeverPosition(newPosition);
+    };
+
+    const handleMouseUp = () => {
+      handleDragEnd();
+    };
+
+    // 觸控事件處理
+    const handleTouchMove = (e) => {
+      if (!isDragging || !e.touches[0]) return;
+      e.preventDefault(); // 防止頁面滾動
+      const newPosition = calculatePosition(e.touches[0].clientY);
+      setLeverPosition(newPosition);
+    };
+
+    const handleTouchEnd = () => {
+      handleDragEnd();
+    };
+
+    // 添加事件監聽器
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('touchend', handleTouchEnd);
 
     return () => {
+      // 移除事件監聽器
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [isDragging, leverPosition, triggerThreshold]);
+  }, [isDragging, leverPosition, triggerThreshold, spin]);
   // 初始化項目列表和分類
   const categories = ['A', 'B', 'C', 'D', 'E', 'F'];
   const defaultItems = [
@@ -324,6 +355,7 @@ function SlotMachine() {
           <div
             className="lever-handle"
             onMouseDown={handleLeverMouseDown}
+            onTouchStart={handleLeverTouchStart}
             style={{ transform: `translate(-50%, ${leverPosition * 100}%)` }}
           />
         </div>
