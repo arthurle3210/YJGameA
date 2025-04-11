@@ -77,7 +77,8 @@ function SlotMachine() {
       // 只要拉桿位置超過閾值，就觸發拉霸
       if (leverPosition > triggerThreshold) {
         console.log('觸發拉霸!');
-        spin();
+        // 使用函數引用而不是直接調用，避免閉包問題
+        setTimeout(() => spin(), 0);
       } else {
         console.log('未達到觸發閾值');
       }
@@ -122,7 +123,7 @@ function SlotMachine() {
       window.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [isDragging, leverPosition, triggerThreshold, spin]);
+  }, [isDragging, leverPosition, triggerThreshold]);
   // 初始化項目列表和分類
   const categories = ['A', 'B', 'C', 'D', 'E', 'F'];
   const defaultItems = [
